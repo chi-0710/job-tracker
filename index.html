@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>求职记录</title>
+  <link rel="stylesheet" href="style.css?v=20260913-2">
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-brand">
+      <span class="app-brand-mark" aria-hidden="true">职</span>
+      <div>
+        <h1>求职记录</h1>
+        <p>数据仅保存在本机</p>
+      </div>
+    </div>
+    <nav class="view-switcher" aria-label="页面切换">
+      <button type="button" id="nav-records" class="view-switch active" aria-pressed="true">投递记录</button>
+      <button type="button" id="nav-stats" class="view-switch" aria-pressed="false">数据统计</button>
+    </nav>
+    <div class="header-actions">
+      <button type="button" id="btn-import" class="btn btn-quiet">导入备份</button>
+      <button type="button" id="btn-save" class="btn btn-save" title="将当前记录导出为 JSON 备份文件">导出备份</button>
+      <input type="file" id="file-import" accept=".json" hidden>
+    </div>
+  </header>
+
+  <main class="app-main" id="records-page">
+    <!-- 左侧：公司列表 -->
+    <aside class="sidebar">
+      <div class="sidebar-heading">
+        <div>
+          <h2>投递公司</h2>
+          <p>管理公司与岗位进展</p>
+        </div>
+        <button type="button" id="btn-add-company" class="btn btn-primary btn-add-company">＋ 新增</button>
+      </div>
+      <div class="sidebar-controls">
+        <label class="sr-only" for="search-input">搜索公司或岗位</label>
+        <div class="search-field">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg>
+          <input type="search" id="search-input" class="input" placeholder="搜索公司或岗位">
+        </div>
+        <label class="sr-only" for="status-filter">按岗位状态筛选</label>
+        <select id="status-filter" class="select" aria-label="按岗位状态筛选">
+          <option value="all">全部状态</option>
+          <option value="pending">待投递</option>
+          <option value="applied">已投递</option>
+          <option value="interviewing">面试中</option>
+          <option value="offer">已offer</option>
+          <option value="rejected">已拒绝</option>
+          <option value="failed">已挂</option>
+        </select>
+      </div>
+      <div class="company-list" id="company-list"></div>
+    </aside>
+
+    <!-- 右侧：详情区 -->
+    <section class="detail" id="detail">
+      <div class="detail-empty" id="detail-empty">
+        <div class="empty-state">
+          <span class="empty-state-mark" aria-hidden="true">✓</span>
+          <h2>选择一个岗位开始</h2>
+          <p>从左侧查看已有记录，或新增公司继续跟进。</p>
+        </div>
+      </div>
+
+      <div class="detail-content" id="detail-content" hidden>
+        <!-- 公司基本信息 -->
+        <div class="detail-section company-overview">
+          <div class="detail-header">
+            <h2 id="detail-company-name">公司名称</h2>
+            <button type="button" id="btn-add-position" class="btn btn-primary btn-sm">＋ 添加岗位</button>
+          </div>
+          <div class="detail-grid">
+            <div class="form-group form-group-full">
+              <label for="field-company-name">公司名称</label>
+              <input type="text" id="field-company-name" class="input">
+            </div>
+            <div class="form-group">
+              <label for="field-company-location">地点</label>
+              <input type="text" id="field-company-location" class="input" placeholder="如 北京/上海">
+            </div>
+            <div class="form-group">
+              <label for="field-company-type">企业性质</label>
+              <select id="field-company-type" class="select">
+                <option value="">未分类</option>
+                <option value="private">私企</option>
+                <option value="state">央国企</option>
+              </select>
+            </div>
+            <div class="form-group form-group-full">
+              <label for="field-company-note">公司备注</label>
+              <textarea id="field-company-note" class="textarea" rows="2" placeholder="公司整体备注、内推信息等"></textarea>
+            </div>
+          </div>
+          <div class="detail-actions">
+            <button type="button" id="btn-save-company" class="btn btn-primary">保存公司信息</button>
+            <button type="button" id="btn-delete-company" class="btn btn-danger">删除公司</button>
+          </div>
+        </div>
+
+        <!-- 岗位标签切换 -->
+        <div class="position-tabs" id="position-tabs" aria-label="岗位切换"></div>
+
+        <!-- 岗位详情 -->
+        <div id="position-detail" hidden>
+          <div class="detail-section">
+            <div class="detail-header">
+              <h3 id="detail-position-name">岗位名称</h3>
+              <span class="status-badge" id="detail-status-badge"></span>
+            </div>
+            <div class="detail-grid">
+              <div class="form-group">
+                <label for="field-position">岗位名称</label>
+                <input type="text" id="field-position" class="input">
+              </div>
+              <div class="form-group">
+                <label for="field-salary">薪资范围</label>
+                <input type="text" id="field-salary" class="input" placeholder="如 25-35K">
+              </div>
+              <div class="form-group">
+                <label for="field-channel">投递渠道</label>
+                <input type="text" id="field-channel" class="input" placeholder="如 官网/内推/猎头">
+              </div>
+              <div class="form-group">
+                <label for="field-application-date">投递日期</label>
+                <input type="date" id="field-application-date" class="input">
+              </div>
+              <div class="form-group">
+                <label for="field-status">状态</label>
+                <select id="field-status" class="select">
+                  <option value="pending">待投递</option>
+                  <option value="applied">已投递</option>
+                  <option value="interviewing">面试中</option>
+                  <option value="offer">已offer</option>
+                  <option value="rejected">已拒绝</option>
+                  <option value="failed">已挂</option>
+                </select>
+              </div>
+              <div class="form-group form-group-full">
+                <label for="field-position-note">岗位备注</label>
+                <textarea id="field-position-note" class="textarea" rows="2" placeholder="该岗位的具体备注"></textarea>
+              </div>
+            </div>
+            <div class="detail-actions">
+              <button type="button" id="btn-save-position" class="btn btn-primary">保存岗位信息</button>
+              <button type="button" id="btn-delete-position" class="btn btn-danger">删除该岗位</button>
+            </div>
+          </div>
+
+          <!-- 投递进展时间线 -->
+          <div class="detail-section">
+            <h3>投递进展</h3>
+            <div class="timeline" id="timeline"></div>
+            <div class="timeline-add">
+              <label class="sr-only" for="new-event-date">进展日期</label>
+              <input type="date" id="new-event-date" class="input input-inline">
+              <label class="sr-only" for="new-event-stage">进展类型</label>
+              <select id="new-event-stage" class="select input-inline" aria-label="进展类型">
+                <option value="other">其他进展</option>
+                <option value="application">投递简历</option>
+                <option value="screening">简历筛选</option>
+                <option value="writtenTest">笔试</option>
+                <option value="firstInterview">初试</option>
+                <option value="secondInterview">复试</option>
+                <option value="finalInterview">终面</option>
+                <option value="offer">Offer</option>
+              </select>
+              <span id="new-event-result-group" hidden>
+                <label class="sr-only" for="new-event-result">进展结果</label>
+                <select id="new-event-result" class="select input-inline" aria-label="进展结果">
+                  <option value="">未记录结果</option>
+                  <option value="pending">待进行</option>
+                  <option value="passed">通过</option>
+                  <option value="failed">未通过</option>
+                  <option value="cancelled">已取消</option>
+                </select>
+              </span>
+              <label class="sr-only" for="new-event-text">进展描述</label>
+              <input type="text" id="new-event-text" class="input input-inline input-flex" placeholder="补充说明（选填）">
+              <button type="button" id="btn-add-event" class="btn btn-primary btn-sm">添加进展</button>
+            </div>
+          </div>
+
+          <!-- 面试准备 -->
+          <div class="detail-section">
+            <h3>面试准备</h3>
+          <label class="sr-only" for="field-interview-prep">面试准备</label>
+          <textarea id="field-interview-prep" class="textarea" rows="5" placeholder="记录面试重点、公司业务、待查问题、自我介绍要点等"></textarea>
+            <div class="detail-actions">
+              <button type="button" id="btn-save-prep" class="btn btn-primary btn-sm">保存面试准备</button>
+            </div>
+          </div>
+
+          <!-- 经验总结（仅面试结束状态显示） -->
+          <div class="detail-section" id="section-summary" hidden>
+            <h3>经验总结</h3>
+            <p class="section-hint">该岗位面试已结束，记录这次求职的经验与反思，帮助后续改进。</p>
+            <label class="sr-only" for="field-summary">经验总结</label>
+            <textarea id="field-summary" class="textarea" rows="6" placeholder="面试表现如何？哪些问题没答好？岗位匹配度如何？下次改进点？"></textarea>
+            <div class="detail-actions">
+              <button type="button" id="btn-save-summary" class="btn btn-primary btn-sm">保存经验总结</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 数据统计看板 -->
+  <section class="stats-page" id="stats-page" hidden>
+    <div class="stats-page-header">
+      <div>
+        <p class="stats-eyebrow">求职进展概览</p>
+        <h2>数据统计</h2>
+        <p>从当前浏览器保存的记录实时计算，不会上传任何数据。</p>
+      </div>
+      <div class="stats-range" id="stats-range" aria-label="统计时间范围">
+        <button type="button" class="stats-range-btn" data-range="7">近 7 天</button>
+        <button type="button" class="stats-range-btn active" data-range="30">近 30 天</button>
+        <button type="button" class="stats-range-btn" data-range="90">近 90 天</button>
+        <button type="button" class="stats-range-btn" data-range="all">全部</button>
+      </div>
+    </div>
+    <div id="stats-content" aria-live="polite"></div>
+  </section>
+
+  <!-- 添加公司弹窗 -->
+  <div class="modal" id="modal-add" role="dialog" aria-modal="true" aria-labelledby="modal-add-title" hidden>
+    <div class="modal-content">
+      <h3 id="modal-add-title">添加公司</h3>
+      <div class="ai-import-panel">
+        <div class="ai-import-heading">
+          <div>
+            <strong>从招聘截图识别</strong>
+            <span>支持 PNG、JPEG、WebP，最大 10 MB</span>
+          </div>
+          <div class="ai-import-actions">
+            <button type="button" id="btn-job-image" class="btn btn-secondary btn-sm">选择截图</button>
+            <button type="button" id="btn-job-image-reselect" class="btn btn-quiet btn-sm" hidden>重新选择</button>
+          </div>
+        </div>
+        <input type="file" id="file-job-image" accept="image/png,image/jpeg,image/webp" hidden>
+        <p id="job-image-name" class="ai-import-file" hidden></p>
+        <p id="job-image-status" class="ai-import-status" role="status" aria-live="polite">识别结果会填入下方表单，确认后再保存。</p>
+      </div>
+      <div class="form-group">
+        <label for="modal-company-name">公司名称 <span class="required">*</span></label>
+        <input type="text" id="modal-company-name" class="input" placeholder="必填">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="modal-company-location">地点</label>
+          <input type="text" id="modal-company-location" class="input" placeholder="如 北京">
+        </div>
+        <div class="form-group">
+          <label for="modal-company-type">企业性质</label>
+          <select id="modal-company-type" class="select">
+            <option value="">未分类</option>
+            <option value="private">私企</option>
+            <option value="state">央国企</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="modal-company-note">公司备注</label>
+        <input type="text" id="modal-company-note" class="input" placeholder="选填">
+      </div>
+      <hr class="modal-divider">
+      <p class="modal-subtitle">第一个岗位（可后续添加更多岗位）</p>
+      <div class="form-group">
+        <label for="modal-position">岗位名称 <span class="required">*</span></label>
+        <input type="text" id="modal-position" class="input" placeholder="必填">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="modal-salary">薪资范围</label>
+          <input type="text" id="modal-salary" class="input" placeholder="如 25-35K">
+        </div>
+        <div class="form-group">
+          <label for="modal-channel">投递渠道</label>
+          <input type="text" id="modal-channel" class="input" placeholder="如 官网/内推">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="modal-application-date">投递日期</label>
+          <input type="date" id="modal-application-date" class="input">
+        </div>
+        <div class="form-group">
+          <label for="modal-status">状态</label>
+          <select id="modal-status" class="select">
+            <option value="pending">待投递</option>
+            <option value="applied">已投递</option>
+            <option value="interviewing">面试中</option>
+            <option value="offer">已offer</option>
+            <option value="rejected">已拒绝</option>
+            <option value="failed">已挂</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="modal-position-note">岗位备注</label>
+        <textarea id="modal-position-note" class="textarea" rows="2"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="modal-cancel" class="btn btn-secondary">取消</button>
+        <button type="button" id="modal-add-confirm" class="btn btn-primary">添加公司</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加岗位弹窗 -->
+  <div class="modal" id="modal-add-position" role="dialog" aria-modal="true" aria-labelledby="modal-position-title" hidden>
+    <div class="modal-content">
+      <h3 id="modal-position-title">添加岗位 <span id="modal-position-company" class="modal-company-name"></span></h3>
+      <div class="form-group">
+        <label for="mp-position">岗位名称 <span class="required">*</span></label>
+        <input type="text" id="mp-position" class="input" placeholder="必填">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="mp-salary">薪资范围</label>
+          <input type="text" id="mp-salary" class="input" placeholder="如 25-35K">
+        </div>
+        <div class="form-group">
+          <label for="mp-channel">投递渠道</label>
+          <input type="text" id="mp-channel" class="input" placeholder="如 官网/内推">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="mp-application-date">投递日期</label>
+          <input type="date" id="mp-application-date" class="input">
+        </div>
+        <div class="form-group">
+          <label for="mp-status">状态</label>
+          <select id="mp-status" class="select">
+            <option value="pending">待投递</option>
+            <option value="applied">已投递</option>
+            <option value="interviewing">面试中</option>
+            <option value="offer">已offer</option>
+            <option value="rejected">已拒绝</option>
+            <option value="failed">已挂</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="mp-position-note">岗位备注</label>
+        <textarea id="mp-position-note" class="textarea" rows="2"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="mp-cancel" class="btn btn-secondary">取消</button>
+        <button type="button" id="mp-confirm" class="btn btn-primary">添加岗位</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 确认弹窗 -->
+  <div class="modal" id="modal-confirm" role="alertdialog" aria-modal="true" aria-describedby="confirm-message" hidden>
+    <div class="modal-content modal-sm">
+      <p id="confirm-message">确定要执行此操作吗？</p>
+      <div class="modal-actions">
+        <button type="button" id="confirm-cancel" class="btn btn-secondary">取消</button>
+        <button type="button" id="confirm-ok" class="btn btn-danger btn-danger-solid">确定删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 提示 -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="data.js"></script>
+  <script src="app.js?v=20260913-3"></script>
+</body>
+</html>
